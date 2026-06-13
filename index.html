@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Dota Roller">
+<meta name="theme-color" content="#0E1015">
+<title>Dota Squad Roller</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0E1015;
+  --panel:#161A22;
+  --panel2:#1E2330;
+  --line:#2A3142;
+  --line-soft:#2A3142;
+  --gold:#C9A24F;
+  --blue:#5BA3F5;
+  --radiant:#6FCF73;
+  --dire:#E85D5D;
+  --ink:#E8EAED;
+  --muted:#8B92A5;
+  --muted2:#646B7D;
+  --str:#E85D5D;
+  --agi:#6FCF73;
+  --int:#5BA3F5;
+  --uni:#8B92A5;
+  --bar-h:74px;
+  --safe-b:env(safe-area-inset-bottom,0px);
+  --safe-t:env(safe-area-inset-top,0px);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg);
+  color:var(--ink);
+  font-family:'Inter',system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;
+  -webkit-tap-highlight-color:transparent;
+  overflow-x:hidden;
+  min-height:100vh;
+}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+a{color:inherit}
+svg{display:block;flex:0 0 auto}
+.num{font-variant-numeric:tabular-nums;font-weight:500}
+
+/* ===== ANIMATED BACKGROUND ===== */
+.bg{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;background:var(--bg)}
+.blob{position:absolute;border-radius:50%;filter:blur(70px);opacity:.06;will-change:transform}
+.b1{width:58vmax;height:58vmax;left:-18vmax;top:-16vmax;background:radial-gradient(circle,#2B4A7A,transparent 66%);animation:drift1 30s ease-in-out infinite}
+.b2{width:52vmax;height:52vmax;right:-16vmax;top:8vmax;background:radial-gradient(circle,#22344f,transparent 66%);animation:drift2 34s ease-in-out infinite}
+.b3{width:48vmax;height:48vmax;left:14vmax;bottom:-20vmax;background:radial-gradient(circle,#1e3358,transparent 66%);animation:drift3 28s ease-in-out infinite}
+@keyframes drift1{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(4vmax,3vmax) scale(1.08)}}
+@keyframes drift2{0%,100%{transform:translate(0,0) scale(1.04)}50%{transform:translate(-4vmax,4vmax) scale(.95)}}
+@keyframes drift3{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(3vmax,-4vmax) scale(1.1)}}
+.sparks{display:none}
+.vignette{position:absolute;inset:0;background:radial-gradient(130% 110% at 50% 30%, transparent 60%, rgba(0,0,0,.35) 100%)}
+@media (min-width:768px){
+  .blob{filter:blur(90px);opacity:.07}
+}
+
+/* ===== APP SHELL ===== */
+.app{position:relative;z-index:1;width:100%;max-width:1100px;margin:0 auto;
+  padding:calc(var(--safe-t) + 14px) 16px calc(var(--bar-h) + var(--safe-b) + 18px);}
+
+/* header */
+.appbar{text-align:left;padding-top:4px}
+.topline{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.patch{font-size:11px;font-weight:500;letter-spacing:.04em;
+  color:var(--muted);border:1px solid var(--line);background:transparent;
+  padding:4px 9px;border-radius:6px}
+.counter{font-size:12px;font-weight:400;color:var(--muted);
+  border:1px solid var(--line);padding:5px 11px;border-radius:6px}
+.counter b{color:var(--gold);font-weight:600;font-variant-numeric:tabular-nums}
+h1{margin:0;font-family:'Inter',sans-serif;font-weight:700;line-height:1.05;
+  font-size:clamp(26px,7vw,42px);letter-spacing:-.02em;color:var(--ink)}
+.subtitle{margin:8px 0 0;color:var(--muted);font-size:clamp(13px,3.4vw,16px);font-weight:400;letter-spacing:0;line-height:1.4}
+
+/* archetype pills */
+.arch-rail{margin:22px -16px 0;padding:0 16px;display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x mandatory;
+  -ms-overflow-style:none;scrollbar-width:none}
+.arch-rail::-webkit-scrollbar{display:none}
+.pill{flex:0 0 auto;scroll-snap-align:start;display:flex;align-items:center;gap:7px;
+  min-height:46px;padding:0 14px;border-radius:8px;white-space:nowrap;
+  font-weight:500;font-size:14px;letter-spacing:0;
+  color:var(--muted);background:var(--panel2);border:1px solid var(--line);
+  transition:border-color .2s ease,color .2s ease,background .2s ease;touch-action:manipulation}
+.pill .pi{display:flex}
+.pill .pi svg{width:17px;height:17px}
+.pill[aria-pressed="true"]{color:var(--ink);border-color:var(--gold);background:var(--panel2)}
+.pill[aria-pressed="true"] .pi svg{color:var(--gold)}
+.pill.chaos[aria-pressed="true"]{color:var(--ink);border-color:var(--dire)}
+.pill.chaos[aria-pressed="true"] .pi svg{color:var(--dire)}
+.pill:active{transform:scale(.97)}
+
+/* desktop control row (hidden on phone) */
+.controls{display:none}
+
+/* archetype panel */
+.panel{margin-top:18px;border:1px solid var(--line);border-radius:8px;overflow:hidden;
+  background:var(--panel)}
+.panel-head{display:flex;align-items:center;gap:11px;padding:14px 15px;cursor:pointer}
+.panel-head .pemoji{display:flex;color:var(--gold)}
+.panel-head .pemoji svg{width:20px;height:20px}
+.panel.chaos .pemoji{color:var(--dire)}
+.panel-head .ptitle{flex:1;min-width:0}
+.panel-head .pname{font-family:'Inter';font-weight:600;font-size:clamp(15px,4vw,19px);
+  color:var(--ink);letter-spacing:-.01em;line-height:1.15}
+.panel-head .pres{font-size:12px;color:var(--muted);margin-top:2px;font-weight:400;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.panel-head .chev{color:var(--muted2);display:flex;transition:transform .25s ease;flex:0 0 auto}
+.panel-head .chev svg{width:16px;height:16px}
+.panel.open .chev{transform:rotate(180deg)}
+.panel-body{padding:0 15px;max-height:0;overflow:hidden;transition:max-height .28s ease,padding .28s ease}
+.panel.open .panel-body{max-height:280px;padding:0 15px 15px}
+.pdesc{color:var(--muted);font-size:14px;line-height:1.5;font-weight:400}
+.pcombo{margin-top:12px;display:flex;gap:10px;align-items:flex-start;
+  background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:11px 12px}
+.pcombo .k{font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--gold);flex:0 0 auto;padding-top:2px;white-space:nowrap}
+.pcombo .v{font-size:13.5px;line-height:1.45;color:var(--ink);font-weight:400}
+.share-m{margin-top:12px;width:100%;min-height:48px;border-radius:6px;font-weight:500;font-size:15px;letter-spacing:0;
+  color:var(--ink);border:1px solid var(--line);background:var(--panel2);
+  display:flex;align-items:center;justify-content:center;gap:8px;touch-action:manipulation;
+  transition:border-color .2s ease,background .2s ease}
+.share-m svg{width:18px;height:18px}
+.share-m:active{transform:scale(.98)}
+
+/* squad */
+.squad{margin-top:18px;display:flex;flex-direction:column;gap:10px}
+.card{position:relative;display:grid;
+  grid-template-columns:112px 1fr;grid-template-rows:auto 1fr;
+  grid-template-areas:"portrait badge" "portrait body";
+  background:var(--panel);
+  border:1px solid var(--line);border-radius:8px;overflow:hidden;min-height:128px;
+  transition:border-color .2s ease,background .2s ease}
+.card:active{transform:scale(.99)}
+.card.locked{border-color:var(--gold)}
+.card.pop{animation:pop .26s ease}
+@keyframes pop{0%{opacity:.45}100%{opacity:1}}
+.card.spin .portrait img{filter:brightness(.7)}
+.card.spin .hname,.card.spin .why{opacity:.4}
+
+.portrait{position:relative;overflow:hidden;background:#0B0D12;grid-area:portrait}
+.portrait img{width:100%;height:100%;object-fit:cover;object-position:50% 18%;display:block;
+  transition:transform .25s ease,filter .2s ease}
+.portrait.noimg img{display:none}
+.pfall{position:absolute;inset:0;display:none;align-items:center;justify-content:center;padding:8px;text-align:center;
+  font-family:'Inter',sans-serif;font-weight:600;font-size:13px;color:var(--muted);
+  background:var(--panel2)}
+.portrait.noimg .pfall{display:flex}
+.pfade{position:absolute;inset:0;background:linear-gradient(90deg,transparent 45%,var(--panel) 98%)}
+
+.body{grid-area:body;position:relative;padding:0 12px 11px 13px;display:flex;flex-direction:column;min-width:0}
+.pbadge{grid-area:badge;display:flex;align-items:center;gap:8px;padding:11px 12px 6px 13px}
+.pnum{flex:0 0 auto;width:24px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;
+  font-family:'Inter',sans-serif;font-weight:600;font-size:13px;color:var(--ink);font-variant-numeric:tabular-nums;
+  background:var(--panel2);border:1px solid var(--line)}
+.card.locked .pnum{border-color:var(--gold);color:var(--gold)}
+.prole{font-size:10px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);line-height:1.2}
+.prole small{display:block;color:var(--muted2);font-size:9px;font-weight:400;letter-spacing:.04em}
+.hname{display:flex;align-items:center;gap:8px;font-weight:600;font-size:clamp(16px,4.6vw,20px);line-height:1.1;
+  letter-spacing:-.01em;transition:opacity .2s ease}
+.dot{flex:0 0 auto;width:8px;height:8px;border-radius:50%}
+.why{margin-top:5px;color:var(--muted);font-size:12.5px;line-height:1.4;font-weight:400;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;transition:opacity .2s ease}
+.dbuff{margin-top:auto;padding-top:7px;font-size:11px;font-weight:500;letter-spacing:.01em;
+  color:var(--muted2);text-decoration:none;width:max-content;display:flex;align-items:center;gap:4px;
+  transition:color .2s ease}
+.dbuff svg{width:12px;height:12px}
+.dbuff:active{color:var(--blue)}
+.lock{position:absolute;top:0;right:0;width:46px;height:46px;display:flex;align-items:center;justify-content:center;
+  color:var(--muted2);z-index:3;touch-action:manipulation;transition:transform .15s ease,color .2s ease}
+.lock svg{width:18px;height:18px}
+.lock:active{transform:scale(.9)}
+.card.locked .lock{color:var(--gold)}
+
+/* footer */
+.foot{margin-top:24px;text-align:left;color:var(--muted2);font-family:'Inter',sans-serif;
+  font-size:11px;line-height:1.6;letter-spacing:0;font-weight:400;padding:0 2px}
+
+/* ===== FIXED BOTTOM BAR (phone) ===== */
+.bottombar{position:fixed;left:0;right:0;bottom:0;z-index:20;display:flex;gap:10px;
+  padding:10px 16px calc(10px + var(--safe-b));
+  background:rgba(14,16,21,.92);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  border-top:1px solid var(--line)}
+.roll-btn{flex:1;min-height:52px;border-radius:6px;font-weight:600;font-size:16px;letter-spacing:0;
+  color:#fff;background:var(--blue);
+  display:flex;align-items:center;justify-content:center;gap:9px;touch-action:manipulation;
+  transition:background .2s ease,transform .15s ease}
+.roll-btn svg{width:19px;height:19px}
+.roll-btn:active{transform:scale(.98);background:#4a91e6}
+.reroll-btn{flex:0 0 auto;width:56px;min-height:52px;border-radius:6px;
+  color:var(--ink);background:var(--panel2);border:1px solid var(--line);
+  display:flex;align-items:center;justify-content:center;touch-action:manipulation;transition:border-color .2s ease}
+.reroll-btn svg{width:20px;height:20px}
+.reroll-btn:active{transform:scale(.96)}
+.roll-btn[disabled],.reroll-btn[disabled]{opacity:.5;pointer-events:none}
+
+/* toast */
+.toast{position:fixed;left:50%;transform:translateX(-50%) translateY(20px);
+  bottom:calc(var(--bar-h) + var(--safe-b) + 18px);z-index:50;
+  background:var(--panel2);border:1px solid var(--line);color:var(--ink);
+  padding:11px 18px;border-radius:8px;font-weight:500;font-size:14px;
+  display:flex;align-items:center;gap:8px;
+  box-shadow:0 8px 24px rgba(0,0,0,.4);opacity:0;pointer-events:none;transition:opacity .25s ease,transform .25s ease}
+.toast svg{width:16px;height:16px;color:var(--radiant)}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ===== TABLET / DESKTOP ===== */
+@media (min-width:768px){
+  :root{--bar-h:0px}
+  .app{padding:calc(var(--safe-t) + 24px) 32px 48px}
+  .topline{margin-bottom:14px}
+  .patch{font-size:12px;padding:5px 11px}
+  .counter{font-size:12px}
+  .subtitle{margin-top:10px}
+  .arch-rail{margin:24px 0 0;padding:0;flex-wrap:wrap;overflow:visible}
+  .pill{flex:0 0 auto}
+
+  .controls{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
+  .ctl{min-height:46px;padding:0 18px;border-radius:6px;font-weight:500;font-size:15px;letter-spacing:0;
+    display:flex;align-items:center;justify-content:center;gap:8px;
+    border:1px solid var(--line);background:var(--panel2);color:var(--ink);
+    transition:border-color .2s ease,background .2s ease,transform .15s ease}
+  .ctl svg{width:17px;height:17px}
+  .ctl.primary{color:#fff;background:var(--blue);border-color:var(--blue)}
+  .ctl:active{transform:scale(.98)}
+
+  .panel-body{max-height:none !important;padding:0 18px 16px !important}
+  .panel-head{cursor:default}
+  .panel .chev{display:none}
+  .pdesc{font-size:15px}
+  .pcombo .v{font-size:14.5px}
+  .share-m{display:none}
+
+  .squad{margin-top:18px;display:grid;grid-template-columns:repeat(5,1fr);gap:12px;align-items:start}
+  .card{display:flex;flex-direction:column;grid-template:none;min-height:0;height:auto;
+    aspect-ratio:auto;border-radius:14px}
+  .portrait{position:relative;width:100%;aspect-ratio:16/9;flex:0 0 auto;overflow:hidden;
+    border-bottom:1px solid var(--line-soft)}
+  .portrait img{position:absolute;inset:0;width:100%;height:100%;display:block;margin:0;
+    object-fit:cover;object-position:center center}
+  .pfade{inset:auto 0 0 0;width:100%;height:46%;
+    background:linear-gradient(180deg,transparent 0%,rgba(5,8,13,.5) 100%)}
+  .pbadge{position:absolute;top:8px;left:8px;z-index:3;padding:0}
+  .prole{color:#e9edf6;text-shadow:0 1px 5px rgba(0,0,0,.85)}
+  .prole small{color:rgba(233,237,246,.72)}
+  .body{position:static;z-index:2;flex:1 1 auto;padding:10px 12px 11px;
+    background:linear-gradient(180deg,var(--panel2),var(--panel))}
+  .hname{font-size:17px;color:var(--ink)}
+  .why{font-size:12px;line-height:1.32;-webkit-line-clamp:2;color:var(--muted)}
+  .dbuff{font-size:10.5px}
+  .bottombar{display:none}
+  .toast{bottom:32px}
+}
+@media (min-width:1100px){
+  .app{padding-left:0;padding-right:0;padding-top:calc(var(--safe-t) + 30px)}
+  .card{aspect-ratio:auto}
+  .hname{font-size:18px}
+  .why{font-size:12.5px}
+}
+
+/* hover only on real pointers */
+@media (hover:hover) and (pointer:fine){
+  .pill:hover{color:var(--ink);border-color:var(--muted2)}
+  .pill[aria-pressed="true"]:hover{border-color:var(--gold)}
+  .ctl:hover{border-color:var(--muted2);background:#252b39}
+  .ctl.primary:hover{background:#6aaef7;border-color:#6aaef7}
+  .card:hover{border-color:var(--muted2)}
+  .card:hover .portrait img{transform:scale(1.04)}
+  .card.locked:hover{border-color:var(--gold)}
+  .lock:hover{color:var(--gold)}
+  .dbuff:hover{color:var(--blue)}
+  .share-m:hover{border-color:var(--muted2);background:#252b39}
+}
+
+/* reduced motion */
+@media (prefers-reduced-motion:reduce){
+  .blob{animation:none}
+  .card.pop{animation:none}
+  .portrait img,.card,.pill,.ctl{transition:none}
+}
+</style>
+</head>
+<body>
+
+<div class="bg" id="bg" aria-hidden="true">
+  <div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div>
+  <div class="sparks" id="sparks"></div>
+  <div class="vignette"></div>
+</div>
+
+<main class="app">
+  <header class="appbar">
+    <div class="topline">
+      <span class="patch">PATCH 7.41D
+</span>
+      <span class="counter">Роллов: <b id="rollCount">0</b></span>
+    </div>
+    <h1>Dota Squad Roller</h1>
+    <p class="subtitle">Синергичная пятёрка для стака — по архетипам, а не наугад.</p>
+  </header>
+
+  <nav class="arch-rail" id="rail" aria-label="Архетипы"></nav>
+
+  <div class="controls" id="controls">
+    <button class="ctl primary" id="cRoll"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="9" cy="9" r=".9" fill="currentColor" stroke="none"/><circle cx="15" cy="9" r=".9" fill="currentColor" stroke="none"/><circle cx="9" cy="15" r=".9" fill="currentColor" stroke="none"/><circle cx="15" cy="15" r=".9" fill="currentColor" stroke="none"/></svg>Новый ролл</button>
+    <button class="ctl" id="cReroll"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg>Перекрутить незалоченных</button>
+    <button class="ctl" id="cShare"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Скопировать состав</button>
+  </div>
+
+  <section class="panel" id="panel">
+    <div class="panel-head" id="panelHead">
+      <span class="pemoji" id="pEmoji"></span>
+      <div class="ptitle">
+        <div class="pname" id="pName">—</div>
+        <div class="pres" id="pRes"></div>
+      </div>
+      <span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>
+    </div>
+    <div class="panel-body">
+      <div class="pdesc" id="pDesc"></div>
+      <div class="pcombo"><span class="k">Ключевое комбо</span><span class="v" id="pCombo"></span></div>
+      <button class="share-m" id="shareM"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>Поделиться составом</button>
+    </div>
+  </section>
+
+  <section class="squad" id="squad" aria-live="polite"></section>
+
+  <p class="foot">
+    Фан-проект. Dota 2 — трейдмарк Valve Corporation. Проект не аффилирован с Valve и не одобрен ею.<br>
+    Изображения героев — Steam CDN. Сделано для весёлых стаков.
+  </p>
+</main>
+
+<div class="bottombar">
+  <button class="roll-btn" id="bRoll"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="9" cy="9" r=".9" fill="currentColor" stroke="none"/><circle cx="15" cy="9" r=".9" fill="currentColor" stroke="none"/><circle cx="9" cy="15" r=".9" fill="currentColor" stroke="none"/><circle cx="15" cy="15" r=".9" fill="currentColor" stroke="none"/></svg>Ролл</button>
+  <button class="reroll-btn" id="bReroll" aria-label="Перекрутить незалоченных"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg></button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============ DATA ============ */
+const CDN="https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/crops/";
+const ATTR={STR:"#E85D5D",AGI:"#6FCF73",INT:"#5BA3F5",UNI:"#8B92A5"};
+const SW='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">';
+const DICE=SW+'<rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="9" cy="9" r=".9" fill="currentColor" stroke="none"/><circle cx="15" cy="9" r=".9" fill="currentColor" stroke="none"/><circle cx="9" cy="15" r=".9" fill="currentColor" stroke="none"/><circle cx="15" cy="15" r=".9" fill="currentColor" stroke="none"/></svg>';
+const ICONS={
+  arch:{
+    0:SW+'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5.5 5.5l2 2M16.5 16.5l2 2M18.5 5.5l-2 2M7.5 16.5l-2 2"/></svg>',
+    1:SW+'<circle cx="12" cy="12" r="8"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/><circle cx="12" cy="12" r="2"/></svg>',
+    2:SW+'<path d="M6 21V8l3-2 3 2 3-2 3 2v13"/><path d="M5 21h14"/><path d="M10 21v-4h4v4"/></svg>',
+    3:SW+'<path d="M12 3l7 3v5c0 4.5-3 7.6-7 9-4-1.4-7-4.5-7-9V6z"/></svg>',
+    4:SW+'<circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3c2.5 2.6 2.5 14.4 0 18M12 3c-2.5 2.6-2.5 14.4 0 18"/></svg>',
+    5:DICE,
+    6:SW+'<path d="M12 3L2 20h20z"/><path d="M12 9v5"/><circle cx="12" cy="17.3" r=".7" fill="currentColor" stroke="none"/></svg>'
+  },
+  lock:SW+'<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>',
+  unlock:SW+'<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 7.9-1"/></svg>',
+  ext:SW+'<path d="M14 5h5v5"/><path d="M19 5l-7 7"/><path d="M19 13v5a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"/></svg>',
+  check:SW+'<path d="M20 6L9 17l-5-5"/></svg>'
+};
+
+// name : {k:cdnKey, a:attr, w:why}
+const H={
+"Sven":{k:"sven",a:"STR",w:"«God's Strength» превращает Свена в одну гигантскую плоскость урона под комбо."},
+"Luna":{k:"luna",a:"AGI",w:"«Eclipse» и глейвы с отскоком сносят собранную пачку за секунды."},
+"Gyrocopter":{k:"gyrocopter",a:"AGI",w:"«Call Down» + «Flak Cannon» — чистый AoE-урон по всей толпе."},
+"Medusa":{k:"medusa",a:"AGI",w:"«Split Shot» бьёт всех сразу, а «Stone Gaze» добивает зазевавшихся."},
+"Leshrac":{k:"leshrac",a:"INT",w:"«Pulse Nova» и «Diabolic Edict» плавят всё в радиусе вокруг него."},
+"Lina":{k:"lina",a:"UNI",w:"«Laguna Blade» удаляет цель, «Light Strike Array» добавляет контроль в комбо."},
+"Invoker":{k:"invoker",a:"UNI",w:"«Cataclysm» и «Chaos Meteor» — фейерверк по всей собранной пачке."},
+"Death Prophet":{k:"death_prophet",a:"INT",w:"«Exorcism» — стая духов, что разносит и героев, и тиры."},
+"Magnus":{k:"magnataur",a:"UNI",w:"«Reverse Polarity» — лучший массовый сбор в игре под всё комбо."},
+"Centaur":{k:"centaur",a:"STR",w:"«Stampede» вгоняет всю команду в драку, а ретурн-урон карает фокус."},
+"Sand King":{k:"sand_king",a:"UNI",w:"«Epicenter» + «Burrowstrike» — площадной стан и тонна урона."},
+"Dark Seer":{k:"dark_seer",a:"UNI",w:"«Vacuum» собирает врагов в кучу прямо под чужие ульты."},
+"Earthshaker":{k:"earthshaker",a:"STR",w:"«Echo Slam» по плотной пачке — один из самых жирных тимфайт-ультов."},
+"Tusk":{k:"tusk",a:"STR",w:"«Snowball» завозит команду в бой, «Walrus Punch» ловит цель."},
+"Enigma":{k:"enigma",a:"INT",w:"«Black Hole» собирает всех в точку — апогей вомбо-комбо."},
+"Snapfire":{k:"snapfire",a:"UNI",w:"«Mortimer Kisses» льёт лаву по площади, «Cookie» стопит цель."},
+"Warlock":{k:"warlock",a:"INT",w:"«Chaotic Offering» — голем по центру пачки усиливает любой замес."},
+"Disruptor":{k:"disruptor",a:"INT",w:"«Static Storm» глушит касты, «Glimpse» возвращает беглеца в комбо."},
+"Jakiro":{k:"jakiro",a:"INT",w:"«Macropyre» и «Ice Path» — стена урона и контроля на узком проходе."},
+"Slark":{k:"slark",a:"AGI",w:"«Pounce» ловит цель, «Shadow Dance» делает пикофф безнаказанным."},
+"Phantom Assassin":{k:"phantom_assassin",a:"AGI",w:"«Phantom Strike» + крит сносят выбранную цель в один наскок."},
+"Juggernaut":{k:"juggernaut",a:"AGI",w:"«Omnislash» удаляет одиночную цель, «Blade Fury» прикрывает прыжок."},
+"Ember Spirit":{k:"ember_spirit",a:"AGI",w:"«Sleight of Fist» и «Fire Remnant» — мобильный пикофф без рисков."},
+"Queen of Pain":{k:"queenofpain",a:"INT",w:"«Blink» + «Sonic Wave» — мгновенный заход на цель и отход."},
+"Storm Spirit":{k:"storm_spirit",a:"INT",w:"«Ball Lightning» догонит кого угодно через всю карту."},
+"Void Spirit":{k:"void_spirit",a:"UNI",w:"«Astral Step» влетает в тыл и режет саппортов без шанса."},
+"Shadow Fiend":{k:"nevermore",a:"AGI",w:"«Requiem of Souls» с близкой дистанции испаряет цель."},
+"Mars":{k:"mars",a:"STR",w:"«Arena of Blood» запирает жертву внутри — ганг без побега."},
+"Pudge":{k:"pudge",a:"STR",w:"«Hook» выдёргивает цель прямо под команду — труп до реакции."},
+"Primal Beast":{k:"primal_beast",a:"STR",w:"«Pulverize» приколачивает цель, пока команда добивает."},
+"Night Stalker":{k:"night_stalker",a:"STR",w:"Ночью «Crippling Fear» сайленсит и догоняет — идеальный ганг."},
+"Spirit Breaker":{k:"spirit_breaker",a:"STR",w:"«Charge of Darkness» через всю карту + стан — цель мертва до реакции."},
+"Bounty Hunter":{k:"bounty_hunter",a:"AGI",w:"«Track» подсвечивает цель и даёт скорость всей группе на ганг."},
+"Earth Spirit":{k:"earth_spirit",a:"UNI",w:"«Geomagnetic Grip» и роллы затаскивают цель в самую гущу."},
+"Lion":{k:"lion",a:"INT",w:"«Earth Spike» + «Hex» + «Finger of Death» — полный ваншот-комбо саппорта."},
+"Bane":{k:"bane",a:"UNI",w:"«Fiend's Grip» намертво вяжет цель на всю длительность ганга."},
+"Shadow Demon":{k:"shadow_demon",a:"INT",w:"«Disruption» вынимает цель из боя, «Demonic Purge» снимает спасения."},
+"Lycan":{k:"lycan",a:"UNI",w:"«Shapeshift» + волки + «Howl» — осадная мощь и быстрый снос тиров."},
+"Troll Warlord":{k:"troll_warlord",a:"AGI",w:"«Battle Trance» ускоряет всю команду — тир падает на глазах."},
+"Drow Ranger":{k:"drow_ranger",a:"AGI",w:"Аура «Marksmanship» и «Multishot» дают команде давление по строению."},
+"Pugna":{k:"pugna",a:"INT",w:"«Nether Blast» рушит здания, «Decrepify» ускоряет осаду."},
+"Dragon Knight":{k:"dragon_knight",a:"STR",w:"В драконьей форме «Elder Dragon Form» сносит тиры по площади."},
+"Venomancer":{k:"venomancer",a:"UNI",w:"«Plague Wards» и «Poison Nova» дают неотключаемое давление на линию."},
+"Broodmother":{k:"broodmother",a:"UNI",w:"Паучки «Spawn Spiderlings» превращают любой тир в труху."},
+"Timbersaw":{k:"shredder",a:"UNI",w:"«Whirling Death» и «Timber Chain» — неубиваемый оффлейнер, грызущий тиры."},
+"Vengeful Spirit":{k:"vengefulspirit",a:"AGI",w:"«Vengeance Aura» баффает урон команды, «Swap» спасает или ловит."},
+"Enchantress":{k:"enchantress",a:"UNI",w:"«Enchant» крадёт крипов, «Impetus» жмёт по строению с дистанции."},
+"Shadow Shaman":{k:"shadow_shaman",a:"INT",w:"«Mass Serpent Ward» — тиры тают, два диса связывают защиту."},
+"Lich":{k:"lich",a:"INT",w:"«Frost Shield» держит крипов на линии, ускоряя пуш тира."},
+"Chen":{k:"chen",a:"UNI",w:"«Holy Persuasion» приводит лесных крипов прямо на осаду."},
+"Spectre":{k:"spectre",a:"AGI",w:"«Haunt» с глобалкой даёт команде защиту и присутствие везде."},
+"Faceless Void":{k:"faceless_void",a:"UNI",w:"«Chronosphere» вокруг кэрри — окно, в котором решает только он."},
+"Terrorblade":{k:"terrorblade",a:"AGI",w:"«Sunder» меняет ХП и спасает кэрри в любой момент."},
+"Anti-Mage":{k:"antimage",a:"AGI",w:"«Blink» и «Mana Void» — кэрри, которого надо беречь до пика."},
+"Outworld Destroyer":{k:"obsidian_destroyer",a:"UNI",w:"«Astral Imprisonment» баюкает цель, давая кэрри спокойно фармить."},
+"Puck":{k:"puck",a:"UNI",w:"«Dream Coil» и фазы делают Пака неубиваемым диктатором драки."},
+"Io":{k:"wisp",a:"UNI",w:"«Relocate» завозит и спасает кэрри из любой точки карты."},
+"Dazzle":{k:"dazzle",a:"UNI",w:"«Shallow Grave»: кэрри буквально не может умереть нужные секунды."},
+"Oracle":{k:"oracle",a:"UNI",w:"«False Promise» отматывает урон — кэрри выходит из боя целым."},
+"Abaddon":{k:"abaddon",a:"UNI",w:"«Aphotic Shield» и ульт «Borrowed Time» не дают фокусу пройти."},
+"Omniknight":{k:"omniknight",a:"STR",w:"«Guardian Angel» снимает весь физический урон с команды в драке."},
+"Nature's Prophet":{k:"furion",a:"UNI",w:"«Teleportation» + «Sprout» — глобалка и сплитпуш одновременно."},
+"Lone Druid":{k:"lone_druid",a:"UNI",w:"Медведь толкает один тир, герой — другой: двойное давление."},
+"Sniper":{k:"sniper",a:"AGI",w:"«Assassinate» простреливает карту, добивая беглецов."},
+"Zeus":{k:"zuus",a:"INT",w:"«Thundergod's Wrath» бьёт всю карту — добивает раненых из ниоткуда."},
+"Tinker":{k:"tinker",a:"INT",w:"«Rearm» и телепорты — бесконечный сплитпуш и глобальное присутствие."},
+"Brewmaster":{k:"brewmaster",a:"UNI",w:"«Primal Split» в одиночку держит лайн или сносит тир."},
+"Mirana":{k:"mirana",a:"UNI",w:"«Sacred Arrow» через всю карту ловит цель для глобального ганга."},
+"Keeper of the Light":{k:"keeper_of_the_light",a:"UNI",w:"«Illuminate» через линию и «Recall» подтягивает союзника в бой."},
+"Ancient Apparition":{k:"ancient_apparition",a:"INT",w:"«Ice Blast» глобально режет лечение и добивает по всей карте."}
+};
+
+const POS=[
+ {n:1,role:"Кэрри",sub:"Safelane"},
+ {n:2,role:"Мидер",sub:"Mid"},
+ {n:3,role:"Оффлейн",sub:"Offlane"},
+ {n:4,role:"Роумер",sub:"Soft Sup"},
+ {n:5,role:"Хард саппорт",sub:"Hard Sup"}
+];
+
+const ARCH=[
+ {id:0,emoji:"💥",name:"Вомбо-комбо",
+  desc:"Тимфайт через площадные ульты: собрать врага в кучу и накрыть уроном по area.",
+  combo:"Magnus «Reverse Polarity» / Enigma «Black Hole» собирают пачку → площадные ульты добивают.",
+  pools:{1:["Sven","Luna","Gyrocopter","Medusa"],2:["Leshrac","Lina","Invoker","Death Prophet"],3:["Magnus","Centaur","Sand King","Dark Seer"],4:["Earthshaker","Tusk","Enigma","Snapfire"],5:["Warlock","Disruptor","Jakiro"]}},
+ {id:1,emoji:"🎯",name:"Пикофф / Ганг",
+  desc:"Точечные убийства: поймать одну цель контролем и удалить её до реакции команды.",
+  combo:"Pudge «Hook» / Spirit Breaker «Charge» + контроль Lion/Bane → таргет мёртв до реакции.",
+  pools:{1:["Slark","Phantom Assassin","Juggernaut","Ember Spirit"],2:["Queen of Pain","Storm Spirit","Void Spirit","Shadow Fiend"],3:["Mars","Pudge","Primal Beast","Night Stalker"],4:["Spirit Breaker","Tusk","Bounty Hunter","Earth Spirit"],5:["Lion","Bane","Shadow Demon","Disruptor"]}},
+ {id:2,emoji:"🏰",name:"Пуш / Осада",
+  desc:"Давление на строения: ауры, саммоны и осадный урон — тиры тают на глазах.",
+  combo:"Ауры и саммоны + Shadow Shaman «Mass Serpent Ward» — тиры тают на глазах.",
+  pools:{1:["Lycan","Troll Warlord","Luna","Drow Ranger"],2:["Death Prophet","Pugna","Leshrac","Dragon Knight"],3:["Venomancer","Broodmother","Dark Seer","Timbersaw"],4:["Vengeful Spirit","Enchantress","Snapfire"],5:["Shadow Shaman","Jakiro","Lich","Chen"]}},
+ {id:3,emoji:"🛡",name:"Защити кэрри",
+  desc:"Вся команда работает на одного кэрри (4-protect-1): сейвы, баффы, пространство.",
+  combo:"Io «Relocate», сейвы Dazzle/Oracle, Vengeful «Swap» — кэрри просто не умирает.",
+  pools:{1:["Spectre","Medusa","Faceless Void","Terrorblade","Anti-Mage"],2:["Outworld Destroyer","Invoker","Puck","Queen of Pain"],3:["Dragon Knight","Mars","Centaur","Dark Seer"],4:["Io","Vengeful Spirit","Earthshaker"],5:["Dazzle","Oracle","Abaddon","Omniknight"]}},
+ {id:4,emoji:"🌍",name:"Глобалка / Сплитпуш",
+  desc:"Контроль всей карты: глобальные ульты и сплитпуш растягивают врага по тирам.",
+  combo:"Глобальные ульты (Zeus/Mirana) + сплитпуш Nature's Prophet — давление везде.",
+  pools:{1:["Nature's Prophet","Lone Druid","Lycan","Sniper"],2:["Zeus","Tinker","Invoker"],3:["Dark Seer","Brewmaster","Timbersaw","Magnus"],4:["Spirit Breaker","Mirana","Snapfire"],5:["Keeper of the Light","Io","Ancient Apparition"]}}
+];
+
+const RANDOM={id:5,emoji:"🎲",name:"Случайная синергия",
+  desc:"Каждый ролл — случайный синергичный архетип из пяти. Пусть жребий решит стиль игры.",
+  combo:"Зависит от выпавшего архетипа — смотри его ключевое комбо выше."};
+const CHAOS={id:6,emoji:"☢",name:"Хаос",
+  desc:"Чистый рандом по ролям из общего пула всех героев. Синергия не гарантируется — да начнётся безумие.",
+  combo:"Без гарантий: положись на скилл и крипоту, а не на драфт."};
+// build chaos pools from union of all archetypes per position
+CHAOS.pools={};
+for(let p=1;p<=5;p++){const s=new Set();ARCH.forEach(a=>a.pools[p].forEach(h=>s.add(h)));CHAOS.pools[p]=[...s];}
+
+const PILL_ORDER=[RANDOM,...ARCH,CHAOS];
+const ALL_NAMES=Object.keys(H);
+
+/* ============ STATE ============ */
+const state={archId:5,locks:[0,0,0,0,0],current:[null,null,null,null,null],resolved:null,rolls:0,busy:false};
+const $=s=>document.querySelector(s);
+const squad=$("#squad");
+const cards=[];
+
+/* ============ HELPERS ============ */
+const rand=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
+const pick=arr=>arr[Math.floor(Math.random()*arr.length)];
+function pickUnique(pool,used){
+  const free=pool.filter(h=>!used.has(h));
+  return free.length?pick(free):pick(pool);
+}
+function archById(id){return id===5?RANDOM:id===6?CHAOS:ARCH[id];}
+function dbuffSlug(name){return name.toLowerCase().replace(/'/g,"").replace(/\s+/g,"-");}
+function vibrate(){try{if(navigator.vibrate)navigator.vibrate(15);}catch(e){}}
+
+/* ============ RENDER ============ */
+function cardHTML(name,i){
+  const h=H[name],locked=state.locks[i],p=POS[i];
+  return `
+   <div class="portrait">
+     <img src="${CDN}${h.k}.png" alt="${name}" loading="lazy"
+       onerror="this.closest('.portrait').classList.add('noimg')">
+     <span class="pfall">${name}</span>
+     <div class="pfade"></div>
+   </div>
+   <div class="pbadge"><span class="pnum">${p.n}</span>
+     <span class="prole">${p.role}<small>${p.sub}</small></span></div>
+   <div class="body">
+     <div class="hname"><span class="dot" style="color:${ATTR[h.a]};background:${ATTR[h.a]}"></span>${name}</div>
+     <div class="why">${h.w}</div>
+     <a class="dbuff" href="https://www.dotabuff.com/heroes/${dbuffSlug(name)}" target="_blank" rel="noopener">Dotabuff ${ICONS.ext}</a>
+   </div>
+   <button class="lock" aria-label="${locked?'Разлочить':'Залочить'}">${locked?ICONS.lock:ICONS.unlock}</button>`;
+}
+function paintCard(i,name){
+  const c=cards[i];
+  c.innerHTML=cardHTML(name,i);
+  c.classList.toggle("locked",!!state.locks[i]);
+}
+function buildSquad(){
+  squad.innerHTML="";
+  for(let i=0;i<5;i++){
+    const c=document.createElement("article");
+    c.className="card";c.dataset.i=i;
+    squad.appendChild(c);cards[i]=c;
+  }
+}
+
+function buildRail(){
+  const rail=$("#rail");
+  PILL_ORDER.forEach(a=>{
+    const b=document.createElement("button");
+    b.className="pill"+(a.id===6?" chaos":"");
+    b.dataset.id=a.id;
+    b.setAttribute("aria-pressed",a.id===state.archId);
+    b.innerHTML=`<span class="pi">${ICONS.arch[a.id]}</span>${a.name}`;
+    b.addEventListener("click",()=>selectArch(a.id));
+    rail.appendChild(b);
+  });
+}
+function syncRail(){
+  document.querySelectorAll(".pill").forEach(p=>
+    p.setAttribute("aria-pressed",(+p.dataset.id)===state.archId));
+}
+function selectArch(id){
+  state.archId=id;syncRail();roll(false);
+}
+
+function resolvedArch(){
+  // what archetype is actually in play this roll
+  if(state.archId===5)return ARCH[state.resolved];
+  if(state.archId===6)return CHAOS;
+  return ARCH[state.archId];
+}
+function updatePanel(){
+  const sel=archById(state.archId);
+  const act=resolvedArch();
+  const panel=$("#panel");
+  panel.classList.toggle("chaos",state.archId===6);
+  $("#pEmoji").innerHTML=ICONS.arch[sel.id];
+  $("#pName").textContent=sel.name;
+  const res=$("#pRes");
+  if(state.archId===5){res.style.display="";res.textContent="→ выпал: "+act.name;}
+  else res.style.display="none";
+  $("#pDesc").textContent=act.desc;
+  $("#pCombo").textContent=act.combo;
+}
+
+/* ============ ROLL ============ */
+function poolsForRoll(){
+  if(state.archId===6)return CHAOS.pools;
+  if(state.archId===5)return ARCH[state.resolved].pools;
+  return ARCH[state.archId].pools;
+}
+function roll(reroll){
+  if(state.busy)return;
+  if(!reroll){state.locks=[0,0,0,0,0];}      // new roll clears locks
+  if(!reroll && state.archId===5)state.resolved=rand(0,4); // random synergy: one archetype this roll
+  if(state.resolved==null)state.resolved=rand(0,4);
+  state.busy=true;state.rolls++;$("#rollCount").textContent=state.rolls;
+  vibrate();
+
+  const pools=poolsForRoll();
+  const used=new Set();
+  const finals=new Array(5);
+  for(let i=0;i<5;i++){if(reroll&&state.locks[i]){finals[i]=state.current[i];used.add(finals[i]);}}
+  for(let i=0;i<5;i++){if(finals[i])continue;finals[i]=pickUnique(pools[i+1],used);used.add(finals[i]);}
+  state.current=finals;
+  updatePanel();
+  setControlsDisabled(true);
+
+  let pending=0;
+  for(let i=0;i<5;i++){
+    if(reroll&&state.locks[i]){paintCard(i,finals[i]);continue;}
+    pending++;spinCard(i,finals[i],600+i*120,()=>{if(--pending===0)finish();});
+  }
+  if(pending===0)finish();
+}
+function finish(){state.busy=false;setControlsDisabled(false);}
+
+function spinCard(i,finalName,dur,done){
+  const c=cards[i];
+  c.classList.add("spin");
+  const reduce=matchMedia("(prefers-reduced-motion:reduce)").matches;
+  let iv=null;
+  if(!reduce){iv=setInterval(()=>paintCardFace(i,pick(ALL_NAMES)),55);}
+  else paintCardFace(i,finalName);
+  setTimeout(()=>{
+    if(iv)clearInterval(iv);
+    c.classList.remove("spin");
+    paintCard(i,finalName);
+    c.classList.add("pop");
+    setTimeout(()=>c.classList.remove("pop"),360);
+    done&&done();
+  },dur);
+}
+// lightweight face swap during spin (no full relayout of lock etc.)
+function paintCardFace(i,name){
+  const c=cards[i];
+  if(!c.querySelector(".portrait")){paintCard(i,name);return;}
+  const h=H[name];
+  const img=c.querySelector(".portrait img");
+  const por=c.querySelector(".portrait");
+  por.classList.remove("noimg");
+  img.src=CDN+h.k+".png";img.alt=name;
+  c.querySelector(".pfall").textContent=name;
+  const nm=c.querySelector(".hname");
+  nm.innerHTML=`<span class="dot" style="color:${ATTR[h.a]};background:${ATTR[h.a]}"></span>${name}`;
+  c.querySelector(".why").textContent=h.w;
+}
+
+function setControlsDisabled(d){
+  ["#bRoll","#bReroll"].forEach(s=>$(s).toggleAttribute("disabled",d));
+  document.querySelectorAll(".ctl").forEach(b=>b.toggleAttribute("disabled",d));
+}
+
+/* ============ LOCK ============ */
+squad.addEventListener("click",e=>{
+  const lk=e.target.closest(".lock");if(!lk)return;
+  const c=e.target.closest(".card");const i=+c.dataset.i;
+  if(state.busy)return;
+  state.locks[i]=state.locks[i]?0:1;
+  paintCard(i,state.current[i]);
+  vibrate();
+});
+
+/* ============ SHARE ============ */
+function shareText(){
+  const a=resolvedArch();
+  let t="Dota Squad Roller — "+a.name+"\n";
+  for(let i=0;i<5;i++){t+=`Поз ${POS[i].n} (${POS[i].role}): ${state.current[i]}\n`;}
+  t+="Комбо: "+a.combo;
+  return t;
+}
+async function share(){
+  const text=shareText();
+  if(navigator.share){
+    try{await navigator.share({title:"Dota Squad Roller",text});return;}catch(e){if(e&&e.name==="AbortError")return;}
+  }
+  copy(text);
+}
+async function copy(text){
+  try{await navigator.clipboard.writeText(text);}
+  catch(e){
+    const ta=document.createElement("textarea");ta.value=text;ta.style.position="fixed";ta.style.opacity="0";
+    document.body.appendChild(ta);ta.select();try{document.execCommand("copy");}catch(_){}ta.remove();
+  }
+  showToast("Состав скопирован");
+}
+let toastT;
+function showToast(msg){
+  const t=$("#toast");t.innerHTML=ICONS.check+'<span>'+msg+'</span>';t.classList.add("show");
+  clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove("show"),2000);
+}
+
+/* ============ BACKGROUND ============ */
+function makeSparks(){ /* flat minimal theme: no sparks */ }
+
+/* ============ WIRE ============ */
+$("#panelHead").addEventListener("click",()=>{
+  if(window.innerWidth>=768)return; // desktop always expanded
+  $("#panel").classList.toggle("open");
+});
+$("#bRoll").addEventListener("click",()=>roll(false));
+$("#bReroll").addEventListener("click",()=>roll(true));
+$("#cRoll").addEventListener("click",()=>roll(false));
+$("#cReroll").addEventListener("click",()=>roll(true));
+$("#cShare").addEventListener("click",share);
+$("#shareM").addEventListener("click",share);
+
+/* ============ INIT ============ */
+buildRail();
+buildSquad();
+makeSparks();
+roll(false);            // first roll on load
+</script>
+</body>
+</html>
+
+<style id="__om-edit-overrides">
+</style>
